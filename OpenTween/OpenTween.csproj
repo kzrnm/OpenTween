@@ -9,7 +9,7 @@
     <RootNamespace>OpenTween</RootNamespace>
     <AssemblyName>OpenTween</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>10.0</LangVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <PathMap>$(MSBuildProjectDirectory)=.</PathMap>
@@ -92,6 +92,7 @@
     <Compile Include="Api\DataModel\TwitterUploadMediaResult.cs" />
     <Compile Include="Api\DataModel\TwitterUser.cs" />
     <Compile Include="Api\DataModel\TwitterApiAccessLevel.cs" />
+    <Compile Include="Api\DataModel\TwitterV2TweetId.cs" />
     <Compile Include="Api\ImgurApi.cs" />
     <Compile Include="Api\JsonUtils.cs" />
     <Compile Include="Api\MicrosoftTranslatorApi.cs" />
@@ -100,10 +101,18 @@
     <Compile Include="Api\TwitterApiException.cs" />
     <Compile Include="Api\TwitterApiStatus.cs" />
     <Compile Include="Api\TwitterStreamObservable.cs" />
+    <Compile Include="Api\DataModel\TwitterV2TweetIds.cs" />
+    <Compile Include="Api\TwitterV2\GetTimelineRequest.cs" />
+    <Compile Include="ApplicationContainer.cs" />
     <Compile Include="ApplicationEvents.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ApplicationInstanceMutex.cs" />
+    <Compile Include="ApplicationPreconditions.cs" />
     <Compile Include="ApplicationSettings.cs" />
+    <Compile Include="Models\TwitterPostFactory.cs" />
+    <Compile Include="ThemeManager.cs" />
+    <Compile Include="IconAssetsManager.cs" />
     <Compile Include="AsyncTimer.cs" />
     <Compile Include="AtIdSupplement.cs">
       <SubType>Form</SubType>
@@ -124,8 +133,13 @@
       <DependentUpon>AuthDialog.cs</DependentUpon>
     </Compile>
     <Compile Include="Bing.cs" />
+    <Compile Include="CommandLineArgs.cs" />
     <Compile Include="Connection\IApiConnection.cs" />
+    <Compile Include="CultureService.cs" />
     <Compile Include="DebounceTimer.cs" />
+    <Compile Include="DisposableLazy.cs" />
+    <Compile Include="ErrorReportHandler.cs" />
+    <Compile Include="IsExternalInit.cs" />
     <Compile Include="MediaUploadServices\IMediaUploadService.cs" />
     <Compile Include="MediaUploadServices\Imgur.cs" />
     <Compile Include="Connection\LazyJson.cs" />
@@ -208,6 +222,9 @@
     <Compile Include="ShortcutCommand.cs" />
     <Compile Include="ThrottleTimer.cs" />
     <Compile Include="Thumbnail\Services\PbsTwimgCom.cs" />
+    <Compile Include="TimelineListViewCache.cs" />
+    <Compile Include="TimelineListViewDrawer.cs" />
+    <Compile Include="TimelineListViewState.cs" />
     <Compile Include="TimelineScheduler.cs" />
     <Compile Include="TweetDetailsView.cs">
       <SubType>UserControl</SubType>
@@ -416,7 +433,6 @@
     <Compile Include="Thumbnail\MapThumb.cs" />
     <Compile Include="Thumbnail\MapThumbOSM.cs" />
     <Compile Include="ListElement.cs" />
-    <Compile Include="ImageListViewItem.cs" />
     <Compile Include="MyCommon.cs" />
     <Compile Include="MyLists.cs">
       <SubType>Form</SubType>
@@ -774,6 +790,21 @@
     <Content Include="Resources\InitialImage.png" />
     <Content Include="Resources\LogoImage.png" />
     <Content Include="Resources\MultiMediaImage.png" />
+    <None Include="Resources\S14.ico" />
+    <None Include="Resources\S13.ico" />
+    <None Include="Resources\S12.ico" />
+    <None Include="Resources\S11.ico" />
+    <None Include="Resources\S10.ico" />
+    <None Include="Resources\S9.ico" />
+    <None Include="Resources\S8.ico" />
+    <None Include="Resources\S7.ico" />
+    <None Include="Resources\S6.ico" />
+    <None Include="Resources\S5.ico" />
+    <None Include="Resources\S4.ico" />
+    <None Include="Resources\S3.ico" />
+    <None Include="Resources\S2.ico" />
+    <None Include="Resources\S1.ico" />
+    <None Include="Resources\S0.ico" />
     <None Include="ErrorReport.datasource" />
     <None Include="Resources\PlayableOverlayImage.png" />
     <Content Include="Resources\re.ico" />

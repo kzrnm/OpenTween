@@ -34,7 +34,7 @@ namespace OpenTween.Models
     {
         private class PostClassGroup
         {
-            private Dictionary<long, PostClass> testCases;
+            private readonly Dictionary<long, PostClass> testCases;
 
             public PostClassGroup(params TestPostClass[] postClasses)
             {
@@ -67,7 +67,7 @@ namespace OpenTween.Models
             }
         }
 
-        private PostClassGroup postGroup;
+        private readonly PostClassGroup postGroup;
 
         public PostClassTest()
         {
@@ -403,7 +403,7 @@ namespace OpenTween.Models
 
         private class FakeExpandedUrlInfo : PostClass.ExpandedUrlInfo
         {
-            public TaskCompletionSource<string> FakeResult = new TaskCompletionSource<string>();
+            public TaskCompletionSource<string> FakeResult = new();
 
             public FakeExpandedUrlInfo(string url, string expandedUrl, bool deepExpand)
                 : base(url, expandedUrl, deepExpand)
@@ -417,6 +417,8 @@ namespace OpenTween.Models
         [Fact]
         public async Task ExpandedUrls_BasicScenario()
         {
+            PostClass.ExpandedUrlInfo.AutoExpand = true;
+
             var post = new PostClass
             {
                 Text = "<a href=\"http://t.co/aaaaaaa\" title=\"http://t.co/aaaaaaa\">bit.ly/abcde</a>",

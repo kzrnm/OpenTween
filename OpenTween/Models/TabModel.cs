@@ -100,31 +100,40 @@ namespace OpenTween.Models
             }
         }
 
-        private IndexedSortedSet<long> ids = new IndexedSortedSet<long>();
-        private ConcurrentQueue<TemporaryId> addQueue = new ConcurrentQueue<TemporaryId>();
-        private readonly ConcurrentQueue<long> removeQueue = new ConcurrentQueue<long>();
-        private SortedSet<long> unreadIds = new SortedSet<long>();
-        private List<long> selectedStatusIds = new List<long>();
+        public long? AnchorStatusId { get; set; }
 
-        private readonly object lockObj = new object();
+        public PostClass? AnchorPost
+        {
+            get
+            {
+                if (this.AnchorStatusId == null)
+                    return null;
+
+                if (!this.Posts.TryGetValue(this.AnchorStatusId.Value, out var post))
+                    return null;
+
+                return post;
+            }
+            set => this.AnchorStatusId = value?.StatusId;
+        }
+
+        private IndexedSortedSet<long> ids = new();
+        private ConcurrentQueue<TemporaryId> addQueue = new();
+        private readonly ConcurrentQueue<long> removeQueue = new();
+        private SortedSet<long> unreadIds = new();
+        private List<long> selectedStatusIds = new();
+
+        private readonly object lockObj = new();
 
         protected TabModel(string tabName)
             => this.TabName = tabName;
 
         public abstract Task RefreshAsync(Twitter tw, bool backward, bool startup, IProgress<string> progress);
 
-        private readonly struct TemporaryId
-        {
-            public long StatusId { get; }
-
-            public bool Read { get; }
-
-            public TemporaryId(long statusId, bool read)
-            {
-                this.StatusId = statusId;
-                this.Read = read;
-            }
-        }
+        private readonly record struct TemporaryId(
+            long StatusId,
+            bool Read
+        );
 
         public virtual void AddPostQueue(PostClass post)
         {
@@ -198,6 +207,9 @@ namespace OpenTween.Models
             this.selectedStatusIds = statusIds;
         }
 
+        public void ClearAnchor()
+            => this.AnchorStatusId = null;
+
         public virtual void ClearIDs()
         {
             this.ids.Clear();
@@ -238,23 +250,13 @@ namespace OpenTween.Models
             }
             else
             {
-                Comparison<PostClass> postComparison;
-                switch (this.SortMode)
+                Comparison<PostClass> postComparison = this.SortMode switch
                 {
-                    default:
-                    case ComparerMode.Data:
-                        postComparison = (x, y) => Comparer<string?>.Default.Compare(x?.TextFromApi, y?.TextFromApi);
-                        break;
-                    case ComparerMode.Name:
-                        postComparison = (x, y) => Comparer<string?>.Default.Compare(x?.ScreenName, y?.ScreenName);
-                        break;
-                    case ComparerMode.Nickname:
-                        postComparison = (x, y) => Comparer<string?>.Default.Compare(x?.Nickname, y?.Nickname);
-                        break;
-                    case ComparerMode.Source:
-                        postComparison = (x, y) => Comparer<string?>.Default.Compare(x?.Source, y?.Source);
-                        break;
-                }
+                    ComparerMode.Name => (x, y) => Comparer<string?>.Default.Compare(x?.ScreenName, y?.ScreenName),
+                    ComparerMode.Nickname => (x, y) => Comparer<string?>.Default.Compare(x?.Nickname, y?.Nickname),
+                    ComparerMode.Source => (x, y) => Comparer<string?>.Default.Compare(x?.Source, y?.Source),
+                    _ => (x, y) => Comparer<string?>.Default.Compare(x?.TextFromApi, y?.TextFromApi),
+                };
 
                 comparison = (x, y) =>
                 {
@@ -284,7 +286,7 @@ namespace OpenTween.Models
         {
             get
             {
-                if (!this.UnreadManage || !SettingManager.Common.UnreadManage)
+                if (!this.UnreadManage || !SettingManager.Instance.Common.UnreadManage)
                     return -1L;
 
                 if (this.unreadIds.Count == 0)
@@ -317,7 +319,7 @@ namespace OpenTween.Models
         {
             get
             {
-                if (!this.UnreadManage || !SettingManager.Common.UnreadManage)
+                if (!this.UnreadManage || !SettingManager.Instance.Common.UnreadManage)
                     return 0;
 
                 return this.unreadIds.Count;

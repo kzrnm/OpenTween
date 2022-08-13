@@ -48,6 +48,7 @@ namespace OpenTween.Setting.Panel
             this.BrowserPathText.Text = settingLocal.BrowserPath;
             this.CheckCloseToExit.Checked = settingCommon.CloseToExit;
             this.CheckMinimizeToTray.Checked = settingCommon.MinimizeToTray;
+            this.CheckEnableTwitterV2Api.Checked = settingCommon.EnableTwitterV2Api;
             this.CheckFavRestrict.Checked = settingCommon.RestrictFavCheck;
             this.chkReadOwnPost.Checked = settingCommon.ReadOwnPost;
             this.CheckReadOldPosts.Checked = settingCommon.ReadOldPosts;
@@ -68,7 +69,19 @@ namespace OpenTween.Setting.Panel
             this.HotkeyCode.Enabled = settingCommon.HotkeyEnabled;
 
             this.CheckOpenUserTimeline.Checked = settingCommon.OpenUserTimeline;
-            this.ListDoubleClickActionComboBox.SelectedIndex = settingCommon.ListDoubleClickAction;
+            this.ListDoubleClickActionComboBox.SelectedIndex = settingCommon.ListDoubleClickAction switch
+            {
+                MyCommon.ListItemDoubleClickActionType.None => 0,
+                MyCommon.ListItemDoubleClickActionType.Reply => 1,
+                MyCommon.ListItemDoubleClickActionType.ReplyAll => 2,
+                MyCommon.ListItemDoubleClickActionType.Favorite => 3,
+                MyCommon.ListItemDoubleClickActionType.ShowProfile => 4,
+                MyCommon.ListItemDoubleClickActionType.ShowTimeline => 5,
+                MyCommon.ListItemDoubleClickActionType.ShowRelated => 6,
+                MyCommon.ListItemDoubleClickActionType.OpenHomeInBrowser => 7,
+                MyCommon.ListItemDoubleClickActionType.OpenStatusInBrowser => 8,
+                _ => 1,
+            };
             this.TabMouseLockCheck.Checked = settingCommon.TabMouseLock;
         }
 
@@ -78,6 +91,7 @@ namespace OpenTween.Setting.Panel
             settingLocal.BrowserPath = this.BrowserPathText.Text.Trim();
             settingCommon.CloseToExit = this.CheckCloseToExit.Checked;
             settingCommon.MinimizeToTray = this.CheckMinimizeToTray.Checked;
+            settingCommon.EnableTwitterV2Api = this.CheckEnableTwitterV2Api.Checked;
             settingCommon.RestrictFavCheck = this.CheckFavRestrict.Checked;
             settingCommon.ReadOwnPost = this.chkReadOwnPost.Checked;
             settingCommon.ReadOldPosts = this.CheckReadOldPosts.Checked;
@@ -96,7 +110,19 @@ namespace OpenTween.Setting.Panel
             settingCommon.HotkeyKey = (Keys)this.HotkeyText.Tag;
 
             settingCommon.OpenUserTimeline = this.CheckOpenUserTimeline.Checked;
-            settingCommon.ListDoubleClickAction = this.ListDoubleClickActionComboBox.SelectedIndex;
+            settingCommon.ListDoubleClickAction = this.ListDoubleClickActionComboBox.SelectedIndex switch
+            {
+                0 => MyCommon.ListItemDoubleClickActionType.None,
+                1 => MyCommon.ListItemDoubleClickActionType.Reply,
+                2 => MyCommon.ListItemDoubleClickActionType.ReplyAll,
+                3 => MyCommon.ListItemDoubleClickActionType.Favorite,
+                4 => MyCommon.ListItemDoubleClickActionType.ShowProfile,
+                5 => MyCommon.ListItemDoubleClickActionType.ShowTimeline,
+                6 => MyCommon.ListItemDoubleClickActionType.ShowRelated,
+                7 => MyCommon.ListItemDoubleClickActionType.OpenHomeInBrowser,
+                8 => MyCommon.ListItemDoubleClickActionType.OpenStatusInBrowser,
+                _ => MyCommon.ListItemDoubleClickActionType.Reply,
+            };
             settingCommon.TabMouseLock = this.TabMouseLockCheck.Checked;
         }
 

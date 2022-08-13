@@ -40,33 +40,10 @@ namespace OpenTween.Models
 {
     public class PostClass : ICloneable
     {
-        public readonly struct StatusGeo : IEquatable<StatusGeo>
-        {
-            public double Longitude { get; }
-
-            public double Latitude { get; }
-
-            public StatusGeo(double longitude, double latitude)
-            {
-                this.Longitude = longitude;
-                this.Latitude = latitude;
-            }
-
-            public override int GetHashCode()
-                => this.Longitude.GetHashCode() ^ this.Latitude.GetHashCode();
-
-            public override bool Equals(object obj)
-                => obj is StatusGeo && this.Equals((StatusGeo)obj);
-
-            public bool Equals(StatusGeo other)
-                => this.Longitude == other.Longitude && this.Latitude == other.Longitude;
-
-            public static bool operator ==(StatusGeo left, StatusGeo right)
-                => left.Equals(right);
-
-            public static bool operator !=(StatusGeo left, StatusGeo right)
-                => !left.Equals(right);
-        }
+        public readonly record struct StatusGeo(
+            double Longitude,
+            double Latitude
+        );
 
         public string Nickname { get; set; } = "";
 
@@ -157,6 +134,8 @@ namespace OpenTween.Models
         /// </summary>
         public class ExpandedUrlInfo : ICloneable
         {
+            public static bool AutoExpand { get; set; } = true;
+
             /// <summary>展開前の t.co ドメインの URL</summary>
             public string Url { get; }
 
@@ -184,7 +163,7 @@ namespace OpenTween.Models
                 this.Url = url;
                 this.expandedUrl = expandedUrl;
 
-                if (deepExpand)
+                if (AutoExpand && deepExpand)
                     this.ExpandTask = this.DeepExpandAsync();
                 else
                     this.ExpandTask = Task.CompletedTask;
@@ -200,7 +179,7 @@ namespace OpenTween.Models
             }
 
             public ExpandedUrlInfo Clone()
-                => new ExpandedUrlInfo(this.Url, this.ExpandedUrl, deepExpand: false);
+                => new(this.Url, this.ExpandedUrl, deepExpand: false);
 
             object ICloneable.Clone()
                 => this.Clone();

@@ -45,7 +45,7 @@
             this.IconNameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ReloadIconToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.SaveIconPictureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.NameLabel = new System.Windows.Forms.Label();
+            this.NameLinkLabel = new System.Windows.Forms.LinkLabel();
             this.PostBrowser = new System.Windows.Forms.WebBrowser();
             this.ContextMenuPostBrowser = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.SelectionSearchContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -73,7 +73,7 @@
             this.UseHashtagMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.SelectionTranslationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.TranslationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.DateTimeLabel = new System.Windows.Forms.Label();
+            this.DateTimeLabel = new System.Windows.Forms.LinkLabel();
             this.SourceLinkLabel = new System.Windows.Forms.LinkLabel();
             this.ContextMenuSource = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.SourceCopyMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -89,7 +89,7 @@
             // 
             resources.ApplyResources(this.TableLayoutPanel1, "TableLayoutPanel1");
             this.TableLayoutPanel1.Controls.Add(this.UserPicture, 0, 0);
-            this.TableLayoutPanel1.Controls.Add(this.NameLabel, 1, 0);
+            this.TableLayoutPanel1.Controls.Add(this.NameLinkLabel, 1, 0);
             this.TableLayoutPanel1.Controls.Add(this.PostBrowser, 1, 1);
             this.TableLayoutPanel1.Controls.Add(this.DateTimeLabel, 2, 0);
             this.TableLayoutPanel1.Controls.Add(this.SourceLinkLabel, 3, 0);
@@ -102,12 +102,11 @@
             this.UserPicture.BackColor = System.Drawing.Color.White;
             this.UserPicture.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.UserPicture.ContextMenuStrip = this.ContextMenuUserPicture;
+            this.UserPicture.Cursor = System.Windows.Forms.Cursors.Hand;
             this.UserPicture.Name = "UserPicture";
             this.TableLayoutPanel1.SetRowSpan(this.UserPicture, 2);
             this.UserPicture.TabStop = false;
-            this.UserPicture.DoubleClick += new System.EventHandler(this.UserPicture_DoubleClick);
-            this.UserPicture.MouseEnter += new System.EventHandler(this.UserPicture_MouseEnter);
-            this.UserPicture.MouseLeave += new System.EventHandler(this.UserPicture_MouseLeave);
+            this.UserPicture.Click += new System.EventHandler(this.UserPicture_Click);
             // 
             // ContextMenuUserPicture
             // 
@@ -199,12 +198,16 @@
             resources.ApplyResources(this.SaveIconPictureToolStripMenuItem, "SaveIconPictureToolStripMenuItem");
             this.SaveIconPictureToolStripMenuItem.Click += new System.EventHandler(this.SaveIconPictureToolStripMenuItem_Click);
             // 
-            // NameLabel
+            // NameLinkLabel
             // 
-            this.NameLabel.AutoEllipsis = true;
-            resources.ApplyResources(this.NameLabel, "NameLabel");
-            this.NameLabel.Name = "NameLabel";
-            this.NameLabel.UseMnemonic = false;
+            this.NameLinkLabel.ActiveLinkColor = System.Drawing.SystemColors.ControlText;
+            resources.ApplyResources(this.NameLinkLabel, "NameLinkLabel");
+            this.NameLinkLabel.AutoEllipsis = true;
+            this.NameLinkLabel.LinkBehavior = System.Windows.Forms.LinkBehavior.NeverUnderline;
+            this.NameLinkLabel.LinkColor = System.Drawing.SystemColors.ControlText;
+            this.NameLinkLabel.Name = "NameLinkLabel";
+            this.NameLinkLabel.TabStop = true;
+            this.NameLinkLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.NameLinkLabel_LinkClicked);
             // 
             // PostBrowser
             // 
@@ -398,9 +401,14 @@
             // 
             // DateTimeLabel
             // 
+            this.DateTimeLabel.ActiveLinkColor = System.Drawing.SystemColors.ControlText;
             resources.ApplyResources(this.DateTimeLabel, "DateTimeLabel");
             this.DateTimeLabel.AutoEllipsis = true;
+            this.DateTimeLabel.LinkBehavior = System.Windows.Forms.LinkBehavior.NeverUnderline;
+            this.DateTimeLabel.LinkColor = System.Drawing.SystemColors.ControlText;
             this.DateTimeLabel.Name = "DateTimeLabel";
+            this.DateTimeLabel.TabStop = true;
+            this.DateTimeLabel.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.DateTimeLabel_LinkClicked);
             // 
             // SourceLinkLabel
             // 
@@ -455,9 +463,7 @@
 
         internal System.Windows.Forms.TableLayoutPanel TableLayoutPanel1;
         internal OTPictureBox UserPicture;
-        internal System.Windows.Forms.Label NameLabel;
         internal System.Windows.Forms.WebBrowser PostBrowser;
-        internal System.Windows.Forms.Label DateTimeLabel;
         internal System.Windows.Forms.LinkLabel SourceLinkLabel;
         internal System.Windows.Forms.ContextMenuStrip ContextMenuPostBrowser;
         internal System.Windows.Forms.ToolStripMenuItem SelectionSearchContextMenuItem;
@@ -501,5 +507,7 @@
         internal System.Windows.Forms.ContextMenuStrip ContextMenuSource;
         internal System.Windows.Forms.ToolStripMenuItem SourceCopyMenuItem;
         internal System.Windows.Forms.ToolStripMenuItem SourceUrlCopyMenuItem;
+        private System.Windows.Forms.LinkLabel DateTimeLabel;
+        private System.Windows.Forms.LinkLabel NameLinkLabel;
     }
 }

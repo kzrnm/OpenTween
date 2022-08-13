@@ -47,16 +47,28 @@ namespace OpenTween
 {
     public partial class TweetDetailsView : UserControl
     {
-        public TweenMain Owner { get; set; } = null!;
+        private TweenMain Owner
+            => this.owner ?? throw this.NotInitializedException();
 
         /// <summary>プロフィール画像のキャッシュ</summary>
-        public ImageCache IconCache { get; set; } = null!;
+        private ImageCache IconCache
+            => this.iconCache ?? throw this.NotInitializedException();
 
         /// <summary><see cref="PostClass"/> のダンプを表示するか</summary>
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool DumpPostClass { get; set; }
 
         /// <summary>現在表示中の発言</summary>
         public PostClass? CurrentPost { get; private set; }
+
+        [Browsable(false)]
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public ThemeManager Theme
+        {
+            get => this.themeManager ?? throw this.NotInitializedException();
+            set => this.themeManager = value;
+        }
 
         [DefaultValue(false)]
         public new bool TabStop
@@ -71,6 +83,10 @@ namespace OpenTween
         /// <summary><see cref="ContextMenuPostBrowser"/> 展開時の <see cref="PostBrowser"/>.StatusText を保持するフィールド</summary>
         private string postBrowserStatusText = "";
 
+        private TweenMain? owner;
+        private ImageCache? iconCache;
+        private ThemeManager? themeManager;
+
         public TweetDetailsView()
         {
             this.InitializeComponent();
@@ -78,13 +94,26 @@ namespace OpenTween
             this.TabStop = false;
 
             // 発言詳細部の初期化
-            this.NameLabel.Text = "";
+            this.NameLinkLabel.Text = "";
             this.DateTimeLabel.Text = "";
             this.SourceLinkLabel.Text = "";
 
             new InternetSecurityManager(this.PostBrowser);
             this.PostBrowser.AllowWebBrowserDrop = false;  // COMException を回避するため、ActiveX の初期化が終わってから設定する
         }
+
+        public void Initialize(TweenMain owner, ImageCache iconCache, ThemeManager themeManager)
+        {
+            this.owner = owner;
+            this.iconCache = iconCache;
+            this.themeManager = themeManager;
+        }
+
+        private Exception NotInitializedException()
+            => new InvalidOperationException("Cannot call before initialization");
+
+        public void ClearPostBrowser()
+            => this.PostBrowser.DocumentText = this.Owner.CreateDetailHtml("");
 
         public async Task ShowPostDetails(PostClass post)
         {
@@ -111,18 +140,20 @@ namespace OpenTween
                 }
                 nameText += post.ScreenName + "/" + post.Nickname;
                 if (post.RetweetedId != null)
-                    nameText += " (RT:" + post.RetweetedBy + ")";
+                    nameText += $" (RT:{post.RetweetedBy})";
 
-                this.NameLabel.Text = nameText;
+                this.NameLinkLabel.Text = nameText;
 
                 var nameForeColor = SystemColors.ControlText;
-                if (post.IsOwl && (SettingManager.Common.OneWayLove || post.IsDm))
-                    nameForeColor = SettingManager.Local.ColorOWL;
+                if (post.IsOwl && (SettingManager.Instance.Common.OneWayLove || post.IsDm))
+                    nameForeColor = this.Theme.ColorOWL;
                 if (post.RetweetedId != null)
-                    nameForeColor = SettingManager.Local.ColorRetweet;
+                    nameForeColor = this.Theme.ColorRetweet;
                 if (post.IsFav)
-                    nameForeColor = SettingManager.Local.ColorFav;
-                this.NameLabel.ForeColor = nameForeColor;
+                    nameForeColor = this.Theme.ColorFav;
+
+                this.NameLinkLabel.LinkColor = nameForeColor;
+                this.NameLinkLabel.ActiveLinkColor = nameForeColor;
 
                 loadTasks.Add(this.SetUserPictureAsync(post.ImageUrl));
 
@@ -203,9 +234,9 @@ namespace OpenTween
             if (tags.Count > 0)
             {
                 if (forward)
-                    tags[0].ScrollTop += SettingManager.Local.FontDetail.Height;
+                    tags[0].ScrollTop += this.Theme.FontDetail.Height;
                 else
-                    tags[0].ScrollTop -= SettingManager.Local.FontDetail.Height;
+                    tags[0].ScrollTop -= this.Theme.FontDetail.Height;
             }
         }
 
@@ -218,9 +249,9 @@ namespace OpenTween
             if (tags.Count > 0)
             {
                 if (forward)
-                    tags[0].ScrollTop += this.PostBrowser.ClientRectangle.Height - SettingManager.Local.FontDetail.Height;
+                    tags[0].ScrollTop += this.PostBrowser.ClientRectangle.Height - this.Theme.FontDetail.Height;
                 else
-                    tags[0].ScrollTop -= this.PostBrowser.ClientRectangle.Height - SettingManager.Local.FontDetail.Height;
+                    tags[0].ScrollTop -= this.PostBrowser.ClientRectangle.Height - this.Theme.FontDetail.Height;
             }
         }
 
@@ -231,9 +262,9 @@ namespace OpenTween
                 .ToArray();
         }
 
-        private async Task SetUserPictureAsync(string imageUrl, bool force = false)
+        private async Task SetUserPictureAsync(string normalImageUrl, bool force = false)
         {
-            if (MyCommon.IsNullOrEmpty(imageUrl))
+            if (MyCommon.IsNullOrEmpty(normalImageUrl))
                 return;
 
             if (this.IconCache == null)
@@ -241,14 +272,31 @@ namespace OpenTween
 
             this.ClearUserPicture();
 
-            await this.UserPicture.SetImageFromTask(async () =>
+            var imageSize = Twitter.DecideProfileImageSize(this.UserPicture.Width);
+            var cachedImage = this.IconCache.TryGetLargerOrSameSizeFromCache(normalImageUrl, imageSize);
+            if (cachedImage != null)
             {
-                var image = await this.IconCache.DownloadImageAsync(imageUrl, force)
-                    .ConfigureAwait(false);
+                // 既にキャッシュされていればそれを表示して終了
+                this.UserPicture.Image = cachedImage.Clone();
+                return;
+            }
 
-                return await image.CloneAsync()
-                    .ConfigureAwait(false);
-            });
+            // 小さいサイズの画像がキャッシュにある場合は高解像度の画像が取得できるまでの間表示する
+            var fallbackImage = this.IconCache.TryGetLargerOrSameSizeFromCache(normalImageUrl, "mini");
+            if (fallbackImage != null)
+                this.UserPicture.Image = fallbackImage.Clone();
+
+            await this.UserPicture.SetImageFromTask(
+                async () =>
+                {
+                    var imageUrl = Twitter.CreateProfileImageUrl(normalImageUrl, imageSize);
+                    var image = await this.IconCache.DownloadImageAsync(imageUrl, force)
+                        .ConfigureAwait(false);
+
+                    return image.Clone();
+                },
+                useStatusImage: false
+            );
         }
 
         /// <summary>
@@ -372,7 +420,7 @@ namespace OpenTween
             {
                 var translatedText = await bing.TranslateAsync(str,
                     langFrom: null,
-                    langTo: SettingManager.Common.TranslateLanguage);
+                    langTo: SettingManager.Instance.Common.TranslateLanguage);
 
                 this.PostBrowser.DocumentText = this.Owner.CreateDetailHtml(translatedText);
             }
@@ -420,25 +468,18 @@ namespace OpenTween
         private void TweetDetailsView_FontChanged(object sender, EventArgs e)
         {
             // OTBaseForm.GlobalFont による UI フォントの変更に対応
-            var origFont = this.NameLabel.Font;
-            this.NameLabel.Font = new Font(this.Font.Name, origFont.Size, origFont.Style);
+            var origFont = this.NameLinkLabel.Font;
+            this.NameLinkLabel.Font = new Font(this.Font.Name, origFont.Size, origFont.Style);
         }
 
         #region TableLayoutPanel1
 
-        private async void UserPicture_DoubleClick(object sender, EventArgs e)
+        private async void UserPicture_Click(object sender, EventArgs e)
         {
-            if (this.CurrentPost == null)
-                return;
-
-            await MyCommon.OpenInBrowserAsync(this, MyCommon.TwitterUrl + this.CurrentPost.ScreenName);
+            var screenName = this.CurrentPost?.ScreenName;
+            if (screenName != null)
+                await this.Owner.ShowUserStatus(screenName, showInputDialog: false);
         }
-
-        private void UserPicture_MouseEnter(object sender, EventArgs e)
-            => this.UserPicture.Cursor = Cursors.Hand;
-
-        private void UserPicture_MouseLeave(object sender, EventArgs e)
-            => this.UserPicture.Cursor = Cursors.Default;
 
         private async void PostBrowser_Navigated(object sender, WebBrowserNavigatedEventArgs e)
         {
@@ -691,11 +732,12 @@ namespace OpenTween
 
         private async void IconNameToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var imageUrl = this.CurrentPost?.ImageUrl;
-            if (MyCommon.IsNullOrEmpty(imageUrl))
+            var imageNormalUrl = this.CurrentPost?.ImageUrl;
+            if (MyCommon.IsNullOrEmpty(imageNormalUrl))
                 return;
 
-            await MyCommon.OpenInBrowserAsync(this, imageUrl.Remove(imageUrl.LastIndexOf("_normal", StringComparison.Ordinal), 7)); // "_normal".Length
+            var imageOriginalUrl = Twitter.CreateProfileImageUrl(imageNormalUrl, "original");
+            await MyCommon.OpenInBrowserAsync(this, imageOriginalUrl);
         }
 
         private async void ReloadIconToolStripMenuItem_Click(object sender, EventArgs e)
@@ -848,9 +890,10 @@ namespace OpenTween
                 var searchOptions = new SearchWordDialog.SearchOptions(
                     SearchWordDialog.SearchType.Timeline,
                     selText,
-                    newTab: false,
-                    caseSensitive: false,
-                    useRegex: false);
+                    NewTab: false,
+                    CaseSensitive: false,
+                    UseRegex: false
+                );
 
                 this.Owner.SearchDialog.ResultOptions = searchOptions;
 
@@ -1055,6 +1098,22 @@ namespace OpenTween
         }
 
         #endregion
+
+        private async void NameLinkLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            var screenName = this.CurrentPost?.ScreenName;
+            if (screenName != null)
+                await this.Owner.ShowUserStatus(screenName, showInputDialog: false);
+        }
+
+        private async void DateTimeLabel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            if (this.CurrentPost == null)
+                return;
+
+            var statusUrl = MyCommon.GetStatusUrl(this.CurrentPost);
+            await MyCommon.OpenInBrowserAsync(this, statusUrl);
+        }
     }
 
     public class TweetDetailsViewStatusChengedEventArgs : EventArgs

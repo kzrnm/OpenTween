@@ -40,7 +40,7 @@ namespace OpenTween.Thumbnail
 
         public static MapThumb GetDefaultInstance()
         {
-            var confValue = SettingManager.Common.MapThumbnailProvider;
+            var confValue = SettingManager.Instance.Common.MapThumbnailProvider;
             var classType = confValue switch
             {
                 MapProvider.OpenStreetMap => typeof(MapThumbOSM),
@@ -57,12 +57,10 @@ namespace OpenTween.Thumbnail
         }
     }
 
-    public class GlobalLocation
-    {
-        public double Latitude { get; set; }
-
-        public double Longitude { get; set; }
-    }
+    public record GlobalLocation(
+        double Latitude,
+        double Longitude
+    );
 
     public enum MapProvider
     {

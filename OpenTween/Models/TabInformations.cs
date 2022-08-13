@@ -45,14 +45,14 @@ namespace OpenTween.Models
         public IReadOnlyTabCollection Tabs
             => this.tabs;
 
-        public MuteTabModel MuteTab { get; private set; } = new MuteTabModel();
+        public MuteTabModel MuteTab { get; private set; } = new();
 
-        public ConcurrentDictionary<long, PostClass> Posts { get; } = new ConcurrentDictionary<long, PostClass>();
+        public ConcurrentDictionary<long, PostClass> Posts { get; } = new();
 
-        private readonly Dictionary<long, PostClass> quotes = new Dictionary<long, PostClass>();
-        private readonly ConcurrentDictionary<long, int> retweetsCount = new ConcurrentDictionary<long, int>();
+        private readonly Dictionary<long, PostClass> quotes = new();
+        private readonly ConcurrentDictionary<long, int> retweetsCount = new();
 
-        public Stack<TabModel> RemovedTab { get; } = new Stack<TabModel>();
+        public Stack<TabModel> RemovedTab { get; } = new();
 
         public ISet<long> BlockIds { get; set; } = new HashSet<long>();
 
@@ -61,11 +61,11 @@ namespace OpenTween.Models
         // 発言の追加
         // AddPost(複数回) -> DistributePosts          -> SubmitUpdate
 
-        private readonly TabCollection tabs = new TabCollection();
-        private readonly ConcurrentQueue<long> addQueue = new ConcurrentQueue<long>();
+        private readonly TabCollection tabs = new();
+        private readonly ConcurrentQueue<long> addQueue = new();
 
         /// <summary>通知サウンドを再生する優先順位</summary>
-        private readonly Dictionary<MyCommon.TabUsageType, int> notifyPriorityByTabType = new Dictionary<MyCommon.TabUsageType, int>
+        private readonly Dictionary<MyCommon.TabUsageType, int> notifyPriorityByTabType = new()
         {
             [MyCommon.TabUsageType.DirectMessage] = 100,
             [MyCommon.TabUsageType.Mentions] = 90,
@@ -75,14 +75,14 @@ namespace OpenTween.Models
         };
 
         // トランザクション用
-        private readonly object lockObj = new object();
+        private readonly object lockObj = new();
 
-        private static readonly TabInformations Instance = new TabInformations();
+        private static readonly TabInformations Instance = new();
 
         // List
-        private List<ListElement> lists = new List<ListElement>();
+        private List<ListElement> lists = new();
 
-        private TabInformations()
+        internal TabInformations()
         {
         }
 
@@ -207,6 +207,69 @@ namespace OpenTween.Models
                 throw new ArgumentException($"{tabName} does not exist.", nameof(tabName));
 
             this.SelectedTabName = tabName;
+        }
+
+        public void LoadTabsFromSettings(SettingTabs settingTabs)
+        {
+            foreach (var tabSetting in settingTabs.Tabs)
+            {
+                var tab = this.CreateTabFromSettings(tabSetting);
+                if (tab == null)
+                    continue;
+
+                if (this.ContainsTab(tab.TabName))
+                    tab.TabName = this.MakeTabName("MyTab");
+
+                this.AddTab(tab);
+            }
+        }
+
+        public TabModel? CreateTabFromSettings(SettingTabs.SettingTabItem tabSetting)
+        {
+            var tabName = tabSetting.TabName;
+
+            TabModel? tab = tabSetting.TabType switch
+            {
+                MyCommon.TabUsageType.Home
+                    => new HomeTabModel(tabName),
+                MyCommon.TabUsageType.Mentions
+                    => new MentionsTabModel(tabName),
+                MyCommon.TabUsageType.DirectMessage
+                    => new DirectMessagesTabModel(tabName),
+                MyCommon.TabUsageType.Favorites
+                    => new FavoritesTabModel(tabName),
+                MyCommon.TabUsageType.UserDefined
+                    => new FilterTabModel(tabName),
+                MyCommon.TabUsageType.UserTimeline
+                    => new UserTimelineTabModel(tabName, tabSetting.User!),
+                MyCommon.TabUsageType.PublicSearch
+                    => new PublicSearchTabModel(tabName)
+                    {
+                        SearchWords = tabSetting.SearchWords,
+                        SearchLang = tabSetting.SearchLang,
+                    },
+                MyCommon.TabUsageType.Lists
+                    => new ListTimelineTabModel(tabName, tabSetting.ListInfo!),
+                MyCommon.TabUsageType.Mute
+                    => new MuteTabModel(tabName),
+                _ => null,
+            };
+
+            if (tab == null)
+                return null;
+
+            tab.UnreadManage = tabSetting.UnreadManage;
+            tab.Protected = tabSetting.Protected;
+            tab.Notify = tabSetting.Notify;
+            tab.SoundFile = tabSetting.SoundFile;
+
+            if (tab is FilterTabModel filterTab)
+            {
+                filterTab.FilterArray = tabSetting.FilterArray;
+                filterTab.FilterModified = false;
+            }
+
+            return tab;
         }
 
         /// <summary>
@@ -522,7 +585,7 @@ namespace OpenTween.Models
                     if (item.IsFav && item.RetweetedId != null) item.IsFav = false;
 
                     // 既に持っている公式RTは捨てる
-                    if (item.RetweetedId != null && SettingManager.Common.HideDuplicatedRetweets)
+                    if (item.RetweetedId != null && SettingManager.Instance.Common.HideDuplicatedRetweets)
                     {
                         var retweetCount = this.UpdateRetweetCount(item);
 

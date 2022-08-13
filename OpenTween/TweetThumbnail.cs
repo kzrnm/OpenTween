@@ -43,8 +43,9 @@ namespace OpenTween
 {
     public partial class TweetThumbnail : UserControl
     {
-        protected internal List<OTPictureBox> PictureBox = new List<OTPictureBox>();
-        protected MouseWheelMessageFilter filter = new MouseWheelMessageFilter();
+        protected internal List<OTPictureBox> PictureBox = new();
+        protected MouseWheelMessageFilter filter = new();
+        private ThumbnailGenerator? thumbGenerator;
 
         public event EventHandler<EventArgs>? ThumbnailLoading;
 
@@ -61,8 +62,17 @@ namespace OpenTween
         public ThumbnailInfo Thumbnail
             => (ThumbnailInfo)this.PictureBox[this.DisplayThumbnailIndex].Tag;
 
+        private ThumbnailGenerator ThumbGenerator
+            => this.thumbGenerator ?? throw this.NotInitializedException();
+
         public TweetThumbnail()
             => this.InitializeComponent();
+
+        public void Initialize(ThumbnailGenerator thumbnailGenerator)
+            => this.thumbGenerator = thumbnailGenerator;
+
+        private Exception NotInitializedException()
+            => new InvalidOperationException("Cannot call before initialization");
 
         public Task ShowThumbnailAsync(PostClass post)
             => this.ShowThumbnailAsync(post, CancellationToken.None);
@@ -128,7 +138,7 @@ namespace OpenTween
             => @"https://saucenao.com/search.php?url=" + Uri.EscapeDataString(imageUri);
 
         protected virtual Task<IEnumerable<ThumbnailInfo>> GetThumbailInfoAsync(PostClass post, CancellationToken token)
-            => ThumbnailGenerator.GetThumbnailsAsync(post, token);
+            => this.ThumbGenerator.GetThumbnailsAsync(post, token);
 
         /// <summary>
         /// 表示するサムネイルの数を設定する

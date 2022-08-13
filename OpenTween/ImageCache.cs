@@ -49,7 +49,7 @@ namespace OpenTween
         /// <summary>
         /// innerDictionary の排他制御のためのロックオブジェクト
         /// </summary>
-        private readonly object lockObject = new object();
+        private readonly object lockObject = new();
 
         /// <summary>
         /// オブジェクトが破棄された否か
@@ -138,6 +138,22 @@ namespace OpenTween
 
                 return imageTask.Result;
             }
+        }
+
+        public MemoryImage? TryGetLargerOrSameSizeFromCache(string normalUrl, string size)
+        {
+            var sizes = new[] { "mini", "normal", "bigger", "original" };
+            var minimumIndex = sizes.FindIndex(x => x == size);
+
+            foreach (var candidateSize in sizes.Skip(minimumIndex))
+            {
+                var imageUrl = Twitter.CreateProfileImageUrl(normalUrl, candidateSize);
+                var image = this.TryGetFromCache(imageUrl);
+                if (image != null)
+                    return image;
+            }
+
+            return null;
         }
 
         public void CancelAsync()

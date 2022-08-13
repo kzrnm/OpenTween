@@ -59,11 +59,9 @@ namespace OpenTween
 {
     public static class MyCommon
     {
-        private static readonly object LockObj = new object();
+        private static readonly object LockObj = new();
 
         public static bool EndingFlag { get; set; } // 終了フラグ
-
-        public static string SettingPath { get; set; } = null!;
 
         public enum IconSizes
         {
@@ -119,6 +117,20 @@ namespace OpenTween
             // 廃止
             Unu = -1,
             Twurl = -1,
+        }
+
+        public enum ListItemDoubleClickActionType
+        {
+            // 設定ファイルの互換性を保つため新規の項目は途中に追加しないこと
+            Reply,
+            Favorite,
+            ShowProfile,
+            ShowTimeline,
+            ShowRelated,
+            OpenHomeInBrowser,
+            OpenStatusInBrowser,
+            None,
+            ReplyAll,
         }
 
         public enum HITRESULT
@@ -377,7 +389,7 @@ namespace OpenTween
                     writer.Write(errorReport);
                 }
 
-                var settings = SettingManager.Common;
+                var settings = SettingManager.Instance;
                 var mainForm = Application.OpenForms.OfType<TweenMain>().FirstOrDefault();
 
                 ErrorReport report;
@@ -386,15 +398,15 @@ namespace OpenTween
                 else
                     report = new ErrorReport(errorReport);
 
-                report.AnonymousReport = settings.ErrorReportAnonymous;
+                report.AnonymousReport = settings.Common.ErrorReportAnonymous;
 
                 OpenErrorReportDialog(mainForm, report);
 
                 // ダイアログ内で設定が変更されていれば保存する
-                if (settings.ErrorReportAnonymous != report.AnonymousReport)
+                if (settings.Common.ErrorReportAnonymous != report.AnonymousReport)
                 {
-                    settings.ErrorReportAnonymous = report.AnonymousReport;
-                    settings.Save();
+                    settings.Common.ErrorReportAnonymous = report.AnonymousReport;
+                    settings.SaveCommon();
                 }
 
                 return false;
@@ -656,7 +668,7 @@ namespace OpenTween
             SearchResults = 4096,
         }
 
-        public static TwitterApiStatus TwitterApiInfo = new TwitterApiStatus();
+        public static TwitterApiStatus TwitterApiInfo = new();
 
         public static bool IsAnimatedGif(string filename)
         {
@@ -860,7 +872,7 @@ namespace OpenTween
 
         // .NET 4.5+: Reserved characters のうち、Uriクラスによってエスケープ強制解除されてしまうものも最初から Unreserved として扱う
         private static readonly HashSet<char> UnreservedChars =
-            new HashSet<char>("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~!'()*:");
+            new("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~!'()*:");
 
         /// <summary>
         /// 2バイト文字も考慮したクエリ用エンコード
@@ -973,23 +985,23 @@ namespace OpenTween
             => string.IsNullOrEmpty(value);
 
         public static Task OpenInBrowserAsync(IWin32Window? owner, string url)
-            => MyCommon.OpenInBrowserAsync(owner, SettingManager.Local.BrowserPath, url);
+            => MyCommon.OpenInBrowserAsync(owner, SettingManager.Instance.Local.BrowserPath, url);
 
-        public static Task OpenInBrowserAsync(IWin32Window? owner, string? browserPath, string url)
+        public static async Task OpenInBrowserAsync(IWin32Window? owner, string? browserPath, string url)
         {
-            return Task.Run(() =>
+            try
             {
-                try
+                await Task.Run(() =>
                 {
                     var startInfo = MyCommon.CreateBrowserProcessStartInfo(browserPath, url);
                     Process.Start(startInfo);
-                }
-                catch (Win32Exception ex)
-                {
-                    var message = string.Format(Properties.Resources.BrowserStartFailed, ex.ErrorCode);
-                    MessageBox.Show(owner, message, ApplicationSettings.ApplicationName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
-            });
+                });
+            }
+            catch (Win32Exception ex)
+            {
+                var message = string.Format(Properties.Resources.BrowserStartFailed, ex.Message);
+                MessageBox.Show(owner, message, ApplicationSettings.ApplicationName, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
 
         public static ProcessStartInfo CreateBrowserProcessStartInfo(string? browserPathWithArgs, string url)
@@ -1003,7 +1015,7 @@ namespace OpenTween
                 };
             }
 
-            int quoteEnd = -1;
+            var quoteEnd = -1;
             if (browserPathWithArgs.StartsWith("\"", StringComparison.Ordinal))
                 quoteEnd = browserPathWithArgs.IndexOf("\"", 1, StringComparison.Ordinal);
 
@@ -1029,6 +1041,37 @@ namespace OpenTween
                 Arguments = args,
                 UseShellExecute = false,
             };
+        }
+
+        public static IEnumerable<(int Start, int End)> ToRangeChunk(IEnumerable<int> values)
+        {
+            var start = -1;
+            var end = -1;
+
+            foreach (var value in values.OrderBy(x => x))
+            {
+                if (start == -1)
+                {
+                    start = value;
+                    end = value;
+                }
+                else
+                {
+                    if (value == end + 1)
+                    {
+                        end = value;
+                    }
+                    else
+                    {
+                        yield return (start, end);
+                        start = value;
+                        end = value;
+                    }
+                }
+            }
+
+            if (start != -1)
+                yield return (start, end);
         }
     }
 }
